@@ -1,0 +1,163 @@
+import pygame
+import random
+import sys
+
+# Constants
+GRID_SIZE = 50
+CELL_SIZE = 12
+WINDOW_SIZE = GRID_SIZE * CELL_SIZE
+
+# Colors
+WHITE = (255, 255, 255)
+GREEN = (0, 200, 0)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
+GRAY = (128, 128, 128)
+YELLOW = (255, 255, 0)
+
+# Difficulty levels (name: fps)
+LEVELS = {
+    1: ("Easy", 10),
+    2: ("Normal", 15),
+    3: ("Hard", 20),
+    4: ("Very Hard", 25),
+    5: ("Extreme", 30)
+}
+
+# Directions
+UP = (0, -1)
+DOWN = (0, 1)
+LEFT = (-1, 0)
+RIGHT = (1, 0)
+
+def random_position(snake):
+    while True:
+        pos = (random.randint(0, GRID_SIZE-1), random.randint(0, GRID_SIZE-1))
+        if pos not in snake:
+            return pos
+
+def draw_cell(surface, color, pos):
+    rect = pygame.Rect(pos[0]*CELL_SIZE, pos[1]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
+    pygame.draw.rect(surface, color, rect)
+
+def draw_score(surface, score):
+    """Display the current score on screen"""
+    font = pygame.font.SysFont(None, 36)
+    score_text = font.render(f"Score: {score}", True, WHITE)
+    surface.blit(score_text, (10, 10))
+
+def select_level(screen):
+    """Display level selection menu and return selected FPS"""
+    title_font = pygame.font.SysFont(None, 70)
+    option_font = pygame.font.SysFont(None, 40)
+    instruction_font = pygame.font.SysFont(None, 30)
+    
+    while True:
+        screen.fill(BLACK)
+        
+        # Title
+        title = title_font.render("Select Difficulty Level", True, YELLOW)
+        screen.blit(title, (WINDOW_SIZE//2 - title.get_width()//2, 80))
+        
+        # Level options
+        y_offset = 180
+        for level_num, (level_name, fps) in LEVELS.items():
+            text = option_font.render(f"{level_num}. {level_name} (Speed: {fps})", True, WHITE)
+            screen.blit(text, (WINDOW_SIZE//2 - text.get_width()//2, y_offset))
+            y_offset += 60
+        
+        # Instructions
+        instruction = instruction_font.render("Press 1-5 to select", True, GRAY)
+        screen.blit(instruction, (WINDOW_SIZE//2 - instruction.get_width()//2, y_offset + 40))
+        
+        pygame.display.flip()
+        
+        # Wait for level selection
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    return LEVELS[1][1]
+                elif event.key == pygame.K_2:
+                    return LEVELS[2][1]
+                elif event.key == pygame.K_3:
+                    return LEVELS[3][1]
+                elif event.key == pygame.K_4:
+                    return LEVELS[4][1]
+                elif event.key == pygame.K_5:
+                    return LEVELS[5][1]
+
+def main():
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    pygame.display.set_caption("Snake Game")
+    clock = pygame.time.Clock()
+    
+    # Get difficulty level from user
+    fps = select_level(screen)
+
+    snake = [(GRID_SIZE//2, GRID_SIZE//2)]
+    direction = RIGHT
+    food = random_position(snake)
+    score = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_UP, pygame.K_w) and direction != DOWN:
+                    direction = UP
+                elif event.key in (pygame.K_DOWN, pygame.K_s) and direction != UP:
+                    direction = DOWN
+                elif event.key in (pygame.K_LEFT, pygame.K_a) and direction != RIGHT:
+                    direction = LEFT
+                elif event.key in (pygame.K_RIGHT, pygame.K_d) and direction != LEFT:
+                    direction = RIGHT
+
+        # Move snake
+        head_x, head_y = snake[0]
+        delta_x, delta_y = direction
+        new_head = ((head_x + delta_x) % GRID_SIZE, (head_y + delta_y) % GRID_SIZE)
+
+        # Check collision with self
+        if new_head in snake:
+            break  # Game over
+
+        snake.insert(0, new_head)
+
+        # Check food collision
+        if new_head == food:
+            score += 1
+            food = random_position(snake)
+        else:
+            snake.pop()
+
+        # Draw everything
+        screen.fill(BLACK)
+        draw_cell(screen, RED, food)
+        for pos in snake:
+            draw_cell(screen, GREEN, pos)
+        draw_score(screen, score)
+        pygame.display.flip()
+        clock.tick(fps)
+
+    # Game over screen
+    screen.fill(BLACK)
+    font = pygame.font.SysFont(None, 60)
+    text = font.render("Game Over!", True, WHITE)
+    screen.blit(text, (WINDOW_SIZE//2 - text.get_width()//2, WINDOW_SIZE//2 - 60))
+    
+    score_font = pygame.font.SysFont(None, 40)
+    score_text = score_font.render(f"Final Score: {score}", True, YELLOW)
+    screen.blit(score_text, (WINDOW_SIZE//2 - score_text.get_width()//2, WINDOW_SIZE//2 + 10))
+    
+    pygame.display.flip()
+    pygame.time.wait(2000)
+    pygame.quit()
+
+if __name__ == "__main__":
+    main()
